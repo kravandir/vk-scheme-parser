@@ -1,18 +1,15 @@
 import os
 from typing import Optional
 from pydantic import BaseModel as BS
-KAL = ['.git', '.gitignore', 'LICENSE', 'README.md', '.npmignore', 'package.json', 'composer.json', 
-       'errors.json', 'schema.json', 'auth', 'downloadedGames', 'podcasts', 'streaming', 'tasks']
-MORE_KAL = ['errors.json', 'objects.json', ]
-
-
-def int_to_bool(i:int):
-    return str(bool(i))
-
+KAL = ['.git', 'auth', 'downloadedGames', 'podcasts', 'streaming', 'tasks']
 
 class Import(BS):
     file_path:str
     imports:list[str]
+
+
+def int_to_bool(i):
+    return str(bool(i))
 
 
 def get_type(str:str, item:Optional[dict]=None):
@@ -24,7 +21,7 @@ def get_type(str:str, item:Optional[dict]=None):
         case 'boolean':
             return 'bool'
         case 'array':
-            if item == None: return 'Any'
+            if item == None: return 'list'
             elif item.get('type') != None:
                 if isinstance(item.get('type'), list):
                     i = []
@@ -47,10 +44,10 @@ def get_type(str:str, item:Optional[dict]=None):
                 return str
 
 
-def get_file_path(file:str,json:str, kal=MORE_KAL) -> str:
-    if file in kal:
-        return file
-    return 'vk_api_schema/' + file + '/'+ json
+def get_file_path(file:str,json:str) -> str|None:
+    if os.path.exists(file+'/'+json):
+        return 'vk_api_schema/' + file + '/'+ json
+    else: return None
 
 
 def gen_imports(i:dict):
@@ -59,9 +56,10 @@ def gen_imports(i:dict):
     return 'from ..' + path + ' import ' + imports
 
 
-def clean_dir(list:list, kal:list[str]=KAL) -> list[str]:
-    for k in kal:
-        list.remove(k)
+def clean_dir(list:list) -> list[str]:
+    for i in list[:]:
+        if not os.path.isdir(i):
+            list.remove(i)
     return list
     
 
@@ -70,8 +68,8 @@ def get_class_name(orig:str) -> str:
     return name[0][0].upper() + name[0][1:] + ''.join(i.title() for i in name[1:])
 
 
-def get_files(kal=KAL) -> list:
+def get_files() -> list:
     work_dirs = os.listdir('vk_api_schema')
-    return clean_dir(work_dirs, kal)
+    return clean_dir(work_dirs)
 
 

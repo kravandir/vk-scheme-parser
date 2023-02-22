@@ -1,12 +1,11 @@
 import json
-from base import Import, get_class_name, get_file_path, get_files, gen_imports, clean_dir, get_type, int_to_bool
+from base import Import, get_file_path, get_files, gen_imports, get_type, int_to_bool
 from pydantic import BaseModel as BS
-from typing import Literal, Optional
+from typing import Optional
 from loguru import logger
 
-KAL = ['.git', '.gitignore', 'LICENSE', 'README.md', '.npmignore', 'package.json', 'composer.json', 
-       'errors.json', 'schema.json', 'addresses', 'audio', 'base', 'callback', 'calls', 'client', 'comment', 
-       'events', 'tasks', 'stickers', 'podcast', 'owner', 'oauth', 'link', 'base.py']
+# KAL = ['.git', 'addresses', 'audio', 'base', 'callback', 'calls', 'client', 'comment', 
+#        'events', 'tasks', 'stickers', 'podcast', 'owner', 'oauth', 'link']
 BAD_NAMES = ['global', 'extended']
 
 class Parameter(BS):
@@ -42,6 +41,7 @@ class Method(BS):
     name:str
     parameters:list[Parameter]
     class_name:str
+    description:str|None = None
 
     def __init__(self, **data) -> None:
         super().__init__(**data)
@@ -49,11 +49,11 @@ class Method(BS):
 
 
     def __str__(self) -> str:
-        if self.parameters == []:
-            params = ''
-        else: 
-            params = ', ' + get_params(self.parameters)
-        str = '\tasync def ' + self.name + f'(self{params}):\n' + '\t\tr = await self.method('
+        if self.parameters == []: params = ''
+        else: params = ', ' + get_params(self.parameters)
+        if self.description == None: description = ''
+        else: description = f'\t\t"""{self.description}"""\n'
+        str = '\tasync def ' + self.name + f'(self{params}):\n' + description + '\t\tr = await self.method('
         str = str + f'"{self.class_name}.{self.name}", **locals())\n\t\treturn r'
         return str
 
@@ -67,7 +67,7 @@ def get_parameter(dict:dict):
     return Parameter(name=name,type=type,default=default)
 
 
-def get_params(params:list[Parameter], need_typing:bool=True):
+def get_params(params:list[Parameter]):
     p = []
     for param in params:
         string = param.__str__()
@@ -77,7 +77,7 @@ def get_params(params:list[Parameter], need_typing:bool=True):
 
 
 @logger.catch
-def work(file_name:str):
+def gen_file(file_name:str):
     with open(file=file_name) as f:
         scheme = json.load(f)
     
@@ -85,23 +85,26 @@ def work(file_name:str):
     r = 'class ' + class_name + '(BaseMethod):\n'
     for method in scheme['methods']:
         name = method['name'].split('.')[-1]
+        description = method.get('description')
         params = []
         if method.get('parameters') != None:
             for i in method['parameters']:
                 params.append(get_parameter(i))
-        method = Method(name=name, parameters=params, class_name=class_name)
+        method = Method(name=name, parameters=params, class_name=class_name, description=description)
         r = r + method.__str__() + '\n\n'
         # print(method.__str__(), '\n\t\t\n\n')
     return r
 
 
-depencies = [Import(file_path='base', imports=['BaseMethod'])]
-files = []
-for f in get_files(KAL):
-    file = get_file_path(f, 'methods.json')
-    text = work(file)
-    for d in depencies:
-        text = gen_imports(d.__dict__) + '\n\n' + text
-    with open(file.replace('.json', '.py'), 'w') as file:
-        file.write(text)
+def main():
+    depencies = [Import(file_path='base', imports=['BaseMethod'])]
+    for f in get_files():
+        file = get_file_path(f, 'methods.json')
+        if file == None: continue
+        text = gen_file(file)
+        for d in depencies:
+            text = gen_imports(d.__dict__) + '\n\n' + text
+        with open(file.replace('.json', '.py'), 'w') as file:
+            file.write(text)
     
+if __name__ == "__main__": main()
