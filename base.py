@@ -1,19 +1,19 @@
-import os
+import os, keyword
 from typing import Optional
-from pydantic import BaseModel as BS
+from pydantic import BaseModel as BM
 KAL = ['.git', 'auth', 'downloadedGames', 'podcasts', 'streaming', 'tasks']
 
-class Import(BS):
+class Import(BM):
     file_path:str
     imports:list[str]
 
 
 def int_to_bool(i):
-    '''Из нуля получаем строку True'''
+    '''Из нуля получаем строку False'''
     return str(bool(i))
 
 
-def get_type(str:str|list, item:Optional[dict]=None):
+def get_type(str:str|list|None, item:Optional[dict]|None=None) -> str:
     match str:
         case 'string':
             return 'str'
@@ -26,21 +26,28 @@ def get_type(str:str|list, item:Optional[dict]=None):
             elif item.get('type') != None:
                 if isinstance(item.get('type'), list):
                     i = []
-                    for x in item.get('type'):
+                    for x in item['type']:
                         i.append(get_type(x))
-                        return 'list['+'|'.join(i)+']'
+                    return 'list['+'|'.join(i)+']'
                 else:
                     return 'list['+get_type(item['type'])+']'
             elif item.get('$ref') != None:
-                return 'str' #TODO
+                return 'list['+get_class_name(item['$ref'].split('/')[-1])+']'
             else:
-                return str
+                return 'list'
+        case None:
+            if item != None:
+                if item.get('$ref') != None:
+                    return get_class_name(item['$ref'].split('/')[-1])
+                else: return 'Any'
+            else: return 'Any'
+
         case _:
             if isinstance(str, list):
                 i = []
                 for x in str:
                     i.append(get_type(x))
-                    return 'list['+'|'.join(i)+']'
+                return 'list['+'|'.join(i)+']'
             else:
                 return str
 
@@ -48,20 +55,20 @@ def get_type(str:str|list, item:Optional[dict]=None):
 def get_file_path(file:str,json:str) -> str|None:
     '''Получаем путь к файлу, в случае ненахода None'''
     if os.path.exists(file+'/'+json):
-        return 'vk_api_schema/' + file + '/'+ json
+        return file + '/'+ json
     else: return None
 
 
 def gen_import(a:Import):
     path = a.file_path
     imports =', '.join(a.imports)
-    return 'from ..' + path + ' import ' + imports
+    return 'from ' + path + ' import ' + imports
 
 
 def clean_dir(list:list) -> list[str]:
     '''Чистим от НЕ директорий'''
     for i in list[:]:
-        if not os.path.isdir(i):
+        if not os.path.isdir(i) or i == '.git':
             list.remove(i)
     return list
     
@@ -75,6 +82,13 @@ def get_class_name(orig:str) -> str:
 def get_dirs() -> list:
     '''Получаем директории'''
     work_dirs = os.listdir('vk_api_schema')
+    for i in work_dirs[:]:
+        work_dirs.remove(i)
+        work_dirs.append('vk_api_schema/'+i)
     return clean_dir(work_dirs)
 
 
+def check_name(name:str) -> str:
+    if keyword.iskeyword(name): return '_'+name
+    if name[0].isdigit(): return '_'+name
+    else: return name

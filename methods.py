@@ -1,12 +1,11 @@
 import json
-from base import Import, get_file_path, get_dirs, gen_import, get_type, int_to_bool
-from pydantic import BaseModel as BS
+from base import Import, check_name, get_file_path, get_dirs, gen_import, get_type, int_to_bool
+from pydantic import BaseModel as BM
 from typing import Optional
 from loguru import logger
 
-BAD_NAMES = ['global', 'extended']
 
-class Parameter(BS):
+class Parameter(BM):
     name:str
     type:Optional[str] = None
     default:Optional[str|int] = None
@@ -16,8 +15,7 @@ class Parameter(BS):
         super().__init__(**data)
         if self.type == 'bool':
             self.default = int_to_bool(self.default)
-        if self.name in BAD_NAMES:
-            self.name = '_'+self.name
+        self.name = check_name(self.name)
 
 
     def __str__(self):
@@ -38,7 +36,7 @@ def sort_parameters(p:Parameter):
     return p.default != None
 
 
-class Method(BS):
+class Method(BM):
     name:str
     parameters:list[Parameter]
     class_name:str
@@ -59,7 +57,9 @@ class Method(BS):
         if self.parameters == []: params = ''
         else: params = ', ' + get_params(self.parameters)
         if self.description == None: description = ''
-        else: description = f'\t\t"""{self.description}"""\n'
+        else:
+            self.description = self.description.replace('"', "'") # Заменяем вдойную кавычку на одинарну во избежание проблем
+            description = f'\t\t"""{self.description}"""\n'
         str = '\tasync def ' + self.name + f'(self{params}):\n' + description + '\t\tr = await self.method('
         str = str + f'"{self.class_name}.{self.name}", **locals())\n\t\treturn r'
         return str
@@ -87,11 +87,11 @@ def get_params(params:list[Parameter]):
 def gen_file(file_name:str):
     '''Тут пиздец'''
     with open(file=file_name) as f:
-        scheme = json.load(f)
+        schema = json.load(f)
     
     class_name = file_name.split('/')[1].capitalize()
     r = 'class ' + class_name + '(BaseMethod):\n'
-    for method in scheme['methods']:
+    for method in schema['methods']:
         name = method['name'].split('.')[-1]
         description = method.get('description')
         params = []
@@ -100,18 +100,22 @@ def gen_file(file_name:str):
                 params.append(get_parameter(i))
         method = Method(name=name, parameters=params, class_name=class_name, description=description)
         r = r + method.__str__() + '\n\n'
-    return r
+    return r + '\n'
 
 
 def main():
     depencies = [Import(file_path='base', imports=['BaseMethod'])]
+    check = 1
     for f in get_dirs():
         file = get_file_path(f, 'methods.json')
         if file == None: continue
         text = gen_file(file)
-        for d in depencies:
-            text = gen_import(d) + '\n\n' + text
-        with open(file.replace('.json', '.py'), 'w') as file:
+        if check == 1:
+            for d in depencies:
+                check = 0
+                text = gen_import(d) + '\n\n' + text
+#       with open(file.replace('.json', '.py'), 'w') as file:
+        with open('gen/methods.py', 'a') as file:
             file.write(text)
     
 if __name__ == "__main__": main()
