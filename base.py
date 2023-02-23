@@ -17,7 +17,7 @@ def get_type(str:str|list|None, item:Optional[dict]|None=None) -> str:
     match str:
         case 'string':
             return 'str'
-        case 'integer':
+        case 'integer'|'number':
             return 'int'
         case 'boolean':
             return 'bool'

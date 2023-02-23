@@ -9,19 +9,19 @@ class Property(BM):
 
     def __str__(self) -> str:
         if self.type[0].istitle(): self.type = f'"{self.type}"'
-        return f'{self.name}:{self.type}'
+        return f'{self.name}:Optional[{self.type}]'
 
 
 class Object(BM):
     name:str
-    properties:list[Property]|None = None
+    properties:list[Property] = []
     depencies:list[str] = []
 
     def __str__(self) -> str:
         r = 'class '+self.name+'(BM):\n'
-        if self.depencies != []:
-            r = r.replace('BS', 'BS, '+', '.join(self.depencies))
-        if self.properties == [] or self.properties == None:
+        if self.depencies != [] :
+            r = r.replace('BM', 'BM, '+', '.join(self.depencies))
+        if self.properties == []:
             r = r + '\tpass'
         else:
             for p in self.properties:
@@ -44,21 +44,23 @@ def gen_file(file_name:str):
         schema = json.load(f)
 
     objects = []
-    properties = []
     r = ''
     for object_name, object in schema['definitions'].items():
+        properties = []
         depencies = []
         object_name = get_class_name(object_name)
-        print(object_name, r)
         if object.get('type') != 'object' and object.get('type') != None:
-            print(object_name, 'NOT OBJECT')
             objects.append(Property(name=object_name, type=get_type(object['type'])))
             continue
-        elif object.get('allOf') != None:
+        if object.get('$ref') != None and object.get('type') == None:
+            type = get_class_name(object['$ref'].split('/')[-1])
+            objects.append(Property(name=object_name, type=type))
+            continue
+        if object.get('allOf') != None:
             has_properties = False
             for i in object['allOf']:
                 if i.get('$ref') != None:
-                    depencies.append(get_class_name(i['$ref'].split('/')[-1]))
+                    depencies.append(get_class_name(i['$ref'].split('s/')[-1]))
                 else: 
                     has_properties = True
                     object = i
@@ -79,7 +81,8 @@ def gen_file(file_name:str):
 
 
 def main():
-    depencies = [Import(file_path='base', imports=['BM'])]
+    depencies = [Import(file_path='base', imports=['BM']), 
+    Import(file_path='typing', imports=['Optional'])]
     check = 1
     for f in get_dirs():
         file = get_file_path(f, 'objects.json')
@@ -89,6 +92,7 @@ def main():
             for d in depencies:
                 check = 0
                 text = gen_import(d) + '\n\n' + text
+
         #with open(file.replace('.json', '.py'), 'w') as file:
         with open('gen/objects.py', 'a') as file:
             file.write(text)
