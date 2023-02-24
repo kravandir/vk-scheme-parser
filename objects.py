@@ -1,5 +1,5 @@
 import json
-from base import check_name, get_class_name, get_type, Import, get_dirs, get_file_path, gen_import
+from base import check_name, gen_enum, get_class_name, get_type, Import, get_dirs, get_file_path, gen_import
 from pydantic import BaseModel as BM
 
 
@@ -9,7 +9,7 @@ class Property(BM):
 
     def __str__(self) -> str:
         if self.type[0].istitle(): self.type = f'"{self.type}"'
-        return f'{self.name}:Optional[{self.type}]'
+        return f'{self.name}:Optional[{self.type}] = None'
 
 
 class Object(BM):
@@ -20,7 +20,7 @@ class Object(BM):
     def __str__(self) -> str:
         r = 'class '+self.name+'(BM):\n'
         if self.depencies != [] :
-            r = r.replace('BM', 'BM, '+', '.join(self.depencies))
+            r = r.replace('BM', ', '.join(self.depencies))
         if self.properties == []:
             r = r + '\tpass'
         else:
@@ -49,6 +49,9 @@ def gen_file(file_name:str):
         properties = []
         depencies = []
         object_name = get_class_name(object_name)
+        if object.get('enum') != None:
+            r = r+gen_enum(object_name, object['enum'], object.get('enumNames'))
+            continue
         if object.get('type') != 'object' and object.get('type') != None:
             objects.append(Property(name=object_name, type=get_type(object['type'])))
             continue
@@ -82,7 +85,8 @@ def gen_file(file_name:str):
 
 def main():
     depencies = [Import(file_path='base', imports=['BM']), 
-    Import(file_path='typing', imports=['Optional'])]
+    Import(file_path='typing', imports=['Optional']),
+    Import(file_path='enum', imports=['Enum'])]
     check = 1
     for f in get_dirs():
         file = get_file_path(f, 'objects.json')

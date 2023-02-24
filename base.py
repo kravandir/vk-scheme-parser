@@ -52,6 +52,16 @@ def get_type(str:str|list|None, item:Optional[dict]|None=None) -> str:
                 return str
 
 
+def gen_enum(name:str, enum:list[str],enum_names:list[str]|None=None) -> str:
+    if enum_names == None: enum_names = enum
+    r = 'class ' + name + '(Enum):\n'
+    for x, y in zip(enum_names, enum):
+        x = check_name(str(x))
+        if not isinstance(y, int) : y = f'"{y}"'
+        r = r + f'\t{x.upper()} = {y}\n'
+    return r + '\n'
+
+
 def get_file_path(file:str,json:str) -> str|None:
     '''Получаем путь к файлу, в случае ненахода None'''
     if os.path.exists(file+'/'+json):
@@ -89,6 +99,7 @@ def get_dirs() -> list:
 
 
 def check_name(name:str) -> str:
-    if keyword.iskeyword(name): return '_'+name
-    if name[0].isdigit(): return '_'+name
-    else: return name
+    if keyword.iskeyword(name):  name = '_'+name
+    if name[0].isdigit(): name = '_'+name
+    name = name.replace(' ', '_')
+    return name
