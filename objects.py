@@ -35,6 +35,10 @@ class Objects(BM):
     def __str__(self) -> str:
         r = ''
         for i in self.objects:
+            if i.depencies != []:
+                global some_shit
+                some_shit.append(i)
+                continue
             r = r + i.__str__() + '\n'
         return r
 
@@ -82,6 +86,7 @@ def gen_file(file_name:str):
     # print(r)
     return r + '\n\n'
 
+some_shit = []
 
 def main():
     depencies = [Import(file_path='base', imports=['BM']), 
@@ -100,6 +105,12 @@ def main():
         #with open(file.replace('.json', '.py'), 'w') as file:
         with open('gen/objects.py', 'a') as file:
             file.write(text)
+
+    global some_shit
+    text = Objects(objects=some_shit).__str__()
+    with open('gen/objects.py', 'a') as file:
+        file.write(text)
+
            
     
 if __name__ == "__main__": main()

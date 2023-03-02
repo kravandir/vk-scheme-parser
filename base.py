@@ -86,7 +86,7 @@ def clean_dir(list:list) -> list[str]:
 def get_class_name(orig:str) -> str:
     '''base_shit -> BaseShit'''
     name = orig.split('_')
-    return name[0][0].upper() + name[0][1:] + ''.join(i.title() for i in name[1:])
+    return name[0][0].upper() + name[0][1:] + ''.join(i[0].title()+i[1:] for i in name[1:])
 
 
 def get_dirs() -> list:
@@ -99,7 +99,7 @@ def get_dirs() -> list:
 
 
 def check_name(name:str) -> str:
-    if keyword.iskeyword(name):  name = '_'+name
+    if keyword.iskeyword(name) or name == 'list':  name = '_'+name 
     if name[0].isdigit(): name = '_'+name
     name = name.replace(' ', '_')
     return name
