@@ -103,3 +103,7 @@ def check_name(name:str) -> str:
     if name[0].isdigit(): name = '_'+name
     name = name.replace(' ', '_')
     return name
+
+
+def get_ref(ref:str) -> str:
+    return ref.split('/')[-1]
