@@ -114,7 +114,6 @@ def main():
             for d in depencies:
                 check = 0
                 text = gen_import(d) + '\n\n' + text
-#       with open(file.replace('.json', '.py'), 'w') as file:
         with open('gen/methods.py', 'a') as file:
             file.write(text)
     
