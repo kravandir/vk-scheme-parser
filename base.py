@@ -53,6 +53,8 @@ def get_type(str:str|list|None, item:Optional[dict]|None=None) -> str:
                     i.append(get_type(x))
                 return 'list['+'|'.join(i)+']'
             else:
+                if str.startswith('..'):
+                    return get_class_name(get_ref(str))
                 return str
 
 
@@ -131,3 +133,6 @@ def check_name(name:str) -> str:
 
 def get_ref(ref:str) -> str:
     return ref.split('/')[-1]
+
+def type_or_ref(dict:dict):
+    return dict.get('type', dict.get('$ref'))

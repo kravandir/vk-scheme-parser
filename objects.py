@@ -44,6 +44,7 @@ class Objects(BM):
 
 
 def gen_file(file_name:str):
+    global x
     with open(file_name) as f:
         schema = json.load(f)
 
@@ -56,14 +57,14 @@ def gen_file(file_name:str):
         if object.get('enum') != None:
             r = r+gen_enum(object_name, object['enum'], object.get('enumNames'))
             continue
-        if object.get('type') != 'object' and object.get('type') != None:
+        elif object.get('type') != 'object' and object.get('type') != None:
             objects.append(Property(name=object_name, type=get_type(object['type'])))
             continue
-        if object.get('$ref') != None and object.get('type') == None:
+        elif object.get('$ref') != None and object.get('type') == None:
             type = get_class_name(object['$ref'].split('/')[-1])
             objects.append(Property(name=object_name, type=type))
             continue
-        if object.get('allOf') != None:
+        elif object.get('allOf') != None:
             has_properties = False
             for i in object['allOf']:
                 if i.get('$ref') != None:
@@ -72,11 +73,19 @@ def gen_file(file_name:str):
                     has_properties = True
                     object = i
             if not has_properties: 
-                r = r+Object(name=object_name, properties=[], depencies=depencies).__str__()
+                x = x + Object(name=object_name, properties=[], depencies=depencies).__str__()
                 continue
+            elif object.get('properties') != None:
+                for property_name, property in object['properties'].items():
+                    property_type = get_type(property.get('type'), property)
+                    properties.append(Property(name=check_name(property_name), type=property_type))    
+                x = x + Object(name=object_name, properties=properties, depencies=depencies).__str__()
+                continue
+            else: print(object_name,1)
         elif object.get('$ref') != None:
             depencies.append(get_class_name(object['$ref']))
             objects.append(Object(name=object_name, depencies=depencies))
+            continue
         if object.get('properties') != None:
             for property_name, property in object['properties'].items():
                 property_type = get_type(property.get('type'), property)
@@ -87,8 +96,10 @@ def gen_file(file_name:str):
     return r + '\n\n'
 
 some_shit = []
+x = ''
 
 def main():
+    global x
     depencies = [Import(file_path='base', imports=['BM']), 
     Import(file_path='typing', imports=['Optional']),
     Import(file_path='enum', imports=['Enum'])]
@@ -109,7 +120,7 @@ def main():
     global some_shit
     text = Objects(objects=some_shit).__str__()
     with open('gen/objects.py', 'a') as file:
-        file.write(text)
+        file.write(text+x)
 
            
     

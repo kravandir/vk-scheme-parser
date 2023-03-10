@@ -110,7 +110,6 @@ def gen_file(file_name:str) -> str:
 @loguru.logger.catch
 def main():
     global depencies
-    check = 1
     text = ''
     for f in get_dirs():
         file = get_file_path(f, 'responses.json')
