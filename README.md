@@ -1,6 +1,7 @@
 # VK API SCHEME PARSER
 
-**!!! НАХОДИТСЯ В РАЗРАБОТКЕ !!!**
+
+
 
 ## Использование
 Склонируйте [репозиторий](https://github.com/VKCOM/vk-api-schema) в папку проекта и переименуйте в vk_api_schema
