@@ -6,10 +6,16 @@ from pydantic import BaseModel as BM
 class Property(BM):
     name:str
     type:str
+    required:bool = False
+
+    def __init__(self, **data) -> None:
+        super().__init__(**data)
+        if self.type[0].istitle(): self.type = f'"{self.type}"'
+        if self.required == False: self.type = f'Optional[{self.type}] = None'
+
 
     def __str__(self) -> str:
-        if self.type[0].istitle(): self.type = f'"{self.type}"'
-        return f'{self.name}:Optional[{self.type}] = None'
+        return f'{self.name}:{self.type}'
 
 
 class Object(BM):
@@ -77,8 +83,9 @@ def gen_file(file_name:str):
                 continue
             elif object.get('properties') != None:
                 for property_name, property in object['properties'].items():
+                    required = bool(property.get('required', False))
                     property_type = get_type(property.get('type'), property)
-                    properties.append(Property(name=check_name(property_name), type=property_type))    
+                    properties.append(Property(name=check_name(property_name), type=property_type, required=required))    
                 x = x + Object(name=object_name, properties=properties, depencies=depencies).__str__()
                 continue
             else: print(object_name,1)
@@ -89,7 +96,8 @@ def gen_file(file_name:str):
         if object.get('properties') != None:
             for property_name, property in object['properties'].items():
                 property_type = get_type(property.get('type'), property)
-                properties.append(Property(name=check_name(property_name), type=property_type))
+                required = bool(property.get('required', False))
+                properties.append(Property(name=check_name(property_name), type=property_type, required=required))
         objects.append(Object(name=object_name, properties=properties, depencies=depencies))
     r = r+Objects(objects=objects).__str__()
     # print(r)
